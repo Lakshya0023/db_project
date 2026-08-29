@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus WMS - Warehouse & Supply Chain Management</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sand:      '#F7F4EF',
+            taupe:     '#EAE0D5',
+            taupe2:    '#D8CABF',
+            taupe3:    '#C8B8A8',
+            terra:     '#C86D51',
+            'terra-h': '#B35D42',
+            espresso:  '#2C221E',
+            brown:     '#5C4A42',
+            muted:     '#8B7B74',
+            bdr:       '#C8B8A8',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+
+  <style>
+    body { background-color: #F7F4EF; color: #2C221E; }
+  </style>
+</head>
+<body class="bg-sand text-espresso min-h-screen flex antialiased selection:bg-terra selection:text-white">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="w-64 bg-taupe border-r border-bdr flex flex-col justify-between shrink-0 fixed inset-y-0 z-30">
+    <div>
+      <!-- Brand Logo -->
+      <div class="h-16 px-6 flex items-center gap-3 border-b border-bdr bg-taupe2/60">
+        <div class="w-9 h-9 rounded-xl bg-terra flex items-center justify-center text-white shadow-lg shadow-terra/30">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base tracking-tight text-espresso leading-none">Nexus WMS</h1>
+          <span class="text-[10px] uppercase font-semibold tracking-wider text-terra">Enterprise Logistics</span>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-3 space-y-1 text-sm font-medium">
+        <a href="#" data-tab="dashboard" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" data-tab="inventory" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="boxes" class="w-4 h-4 shrink-0"></i>
+          <span>Inventory Matrix</span>
+        </a>
+        <a href="#" data-tab="products" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="package" class="w-4 h-4 shrink-0"></i>
+          <span>Products Catalog</span>
+        </a>
+        <a href="#" data-tab="warehouses" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="warehouse" class="w-4 h-4 shrink-0"></i>
+          <span>Warehouses</span>
+        </a>
+        <a href="#" data-tab="suppliers" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="building-2" class="w-4 h-4 shrink-0"></i>
+          <span>Suppliers Directory</span>
+        </a>
+
+        <div class="pt-4 pb-1 px-3 text-[11px] font-bold uppercase tracking-wider text-muted">Order Management</div>
+
+        <a href="#" data-tab="purchase-orders" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="arrow-down-to-dot" class="w-4 h-4 shrink-0"></i>
+          <span>Purchase Orders</span>
+        </a>
+        <a href="#" data-tab="sales-orders" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="shopping-bag" class="w-4 h-4 shrink-0"></i>
+          <span>Sales Orders</span>
+        </a>
+        <a href="#" data-tab="shipments" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-brown hover:bg-taupe2 hover:text-espresso">
+          <i data-lucide="truck" class="w-4 h-4 shrink-0"></i>
+          <span>Shipments & Logistics</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- System Status Bottom Bar -->
+    <div class="p-4 border-t border-bdr bg-taupe2/40">
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+          <span class="text-brown font-medium">Backend Connected</span>
+        </div>
+        <span class="text-[11px] font-mono text-muted">v1.0.0</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT WRAPPER ===== -->
+  <div class="flex-1 flex flex-col pl-64 min-w-0">
+
+    <!-- Top Header -->
+    <header class="h-16 bg-taupe/95 backdrop-blur-md border-b border-bdr sticky top-0 z-20 px-6 flex items-center justify-between shadow-sm">
+      <div class="flex items-center gap-3">
+        <h2 id="current-tab-title" class="text-base font-bold text-espresso">System Overview</h2>
+      </div>
+
+      <div class="flex items-center gap-3.5">
+        <!-- Warehouse Global Quick Filter -->
+        <div class="flex items-center gap-2 bg-sand border border-bdr rounded-xl px-3 py-1.5 text-xs text-brown">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-muted"></i>
+          <span class="text-muted font-medium">Filter:</span>
+          <select id="global-warehouse-filter" class="bg-transparent text-espresso font-semibold focus:outline-none cursor-pointer">
+            <option value="all">All Warehouses</option>
+          </select>
+        </div>
+
+        <!-- Live Refresh Button -->
+        <button onclick="window.refreshCurrentTab()" class="p-2 text-muted hover:text-terra bg-taupe2/60 hover:bg-taupe2 rounded-xl border border-bdr transition" title="Refresh Live Data">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Tab Content Container -->
+    <main id="main-content-area" class="flex-1 p-6 max-w-7xl w-full mx-auto">
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-bdr px-6 py-4 text-center text-xs text-muted bg-taupe/40">
+      Nexus Warehouse Management System &bull; Flask &amp; SQLite / PostgreSQL Backend
+    </footer>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-auto"></div>
+
+  <!-- ============================================================ -->
+  <!-- MODALS -->
+  <!-- ============================================================ -->
+
+  <!-- 1. Quick Stock Adjust Modal -->
+  <div id="modal-quick-adjust" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="sliders" class="w-5 h-5 text-terra"></i> Adjust Inventory Stock
+        </h3>
+        <button onclick="closeModal('modal-quick-adjust')" class="text-muted hover:text-espresso p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form onsubmit="window.handleStockAdjustSubmit(event)" class="space-y-4">
+        <input type="hidden" id="adjust-product-id">
+        <input type="hidden" id="adjust-warehouse-id">
+        <div class="p-3 bg-sand rounded-xl border border-bdr text-xs space-y-1">
+          <div class="text-muted">Product: <strong id="adjust-product-name" class="text-espresso"></strong></div>
+          <div class="text-muted">Current Stock: <strong id="adjust-current-stock" class="text-terra font-mono text-sm"></strong> units</div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Action Type</label>
+          <select id="adjust-type" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+            <option value="in">➕ Stock In / Receipt (Increment)</option>
+            <option value="out">➖ Stock Out / Discrepancy (Decrement)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Quantity to Adjust</label>
+          <input type="number" min="1" id="adjust-change" required placeholder="e.g. 20" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-quick-adjust')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Apply Stock Change</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Add Stock Record Modal -->
+  <div id="modal-add-inventory" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-terra"></i> Add New Inventory Record
+        </h3>
+        <button onclick="closeModal('modal-add-inventory')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleAddInventorySubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Product</label>
+          <select id="new-inv-product-id" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Warehouse Location</label>
+          <select id="new-inv-warehouse-id" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Initial Quantity</label>
+          <input type="number" min="0" id="new-inv-quantity" value="10" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-add-inventory')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Create Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Create / Edit Product Modal -->
+  <div id="modal-product" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 id="product-form-title" class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="package" class="w-5 h-5 text-terra"></i> Product
+        </h3>
+        <button onclick="closeModal('modal-product')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleProductSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="product-id">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">SKU (Unique Code)</label>
+            <input type="text" id="product-sku" required placeholder="e.g. SKU-9001" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Unit Price ($)</label>
+            <input type="number" step="0.01" min="0" id="product-price" required placeholder="0.00" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Product Name</label>
+          <input type="text" id="product-name" required placeholder="e.g. Stainless Steel Fastener" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Description</label>
+          <textarea id="product-description" rows="2" placeholder="Specifications, pack sizing, notes..." class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Reorder Threshold</label>
+            <input type="number" min="0" id="product-reorder" value="10" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Primary Supplier</label>
+            <select id="product-supplier-id" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-product')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Create / Edit Warehouse Modal -->
+  <div id="modal-warehouse" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 id="warehouse-form-title" class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="warehouse" class="w-5 h-5 text-terra"></i> Warehouse
+        </h3>
+        <button onclick="closeModal('modal-warehouse')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleWarehouseSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="warehouse-id">
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Warehouse Name</label>
+          <input type="text" id="warehouse-name" required placeholder="e.g. West Coast Distribution Hub" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Location / City</label>
+          <input type="text" id="warehouse-location" placeholder="e.g. Los Angeles, CA" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Capacity (Max Units)</label>
+          <input type="number" min="0" id="warehouse-capacity" value="5000" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-warehouse')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Save Warehouse</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5. Create / Edit Supplier Modal -->
+  <div id="modal-supplier" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 id="supplier-form-title" class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="building-2" class="w-5 h-5 text-terra"></i> Supplier
+        </h3>
+        <button onclick="closeModal('modal-supplier')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleSupplierSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="supplier-id">
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Supplier / Company Name</label>
+          <input type="text" id="supplier-name" required placeholder="e.g. Apex Industrial Supplies" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Contact Email</label>
+            <input type="email" id="supplier-email" placeholder="orders@supplier.com" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Contact Phone</label>
+            <input type="text" id="supplier-phone" placeholder="9876543210" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Address / Headquarters</label>
+          <textarea id="supplier-address" rows="2" placeholder="Street, City, State..." class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></textarea>
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-supplier')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Save Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. Create Purchase Order Modal -->
+  <div id="modal-create-po" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr shrink-0">
+        <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="arrow-down-circle" class="w-5 h-5 text-green-600"></i> New Purchase Order
+        </h3>
+        <button onclick="closeModal('modal-create-po')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleCreatePOSubmit(event)" class="space-y-4 flex-1 overflow-y-auto pr-1">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Supplier</label>
+            <select id="po-supplier-id" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Destination Warehouse</label>
+            <select id="po-warehouse-id" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-brown">Ordered Items</label>
+            <button type="button" onclick="window.addPOLineItem()" class="text-xs font-semibold text-terra hover:text-terra-h flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Line Item
+            </button>
+          </div>
+          <div id="po-items-container" class="space-y-2.5"></div>
+        </div>
+        <div class="p-3.5 bg-sand border border-bdr rounded-xl flex justify-between items-center text-sm font-semibold">
+          <span class="text-brown">Total Purchase Value:</span>
+          <span id="po-total-display" class="font-mono text-green-700 text-base font-bold">$0.00</span>
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr shrink-0">
+          <button type="button" onclick="closeModal('modal-create-po')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-green-600/20">Submit Purchase Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Create Sales Order Modal -->
+  <div id="modal-create-so" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr shrink-0">
+        <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="shopping-cart" class="w-5 h-5 text-terra"></i> New Sales Order
+        </h3>
+        <button onclick="closeModal('modal-create-so')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleCreateSOSubmit(event)" class="space-y-4 flex-1 overflow-y-auto pr-1">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Customer Name / Organization</label>
+            <input type="text" id="so-customer-name" required placeholder="e.g. Acme Industries Ltd." class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-brown mb-1.5">Dispatch Warehouse</label>
+            <select id="so-warehouse-id" required class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2"></select>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-brown">Sales Items</label>
+            <button type="button" onclick="window.addSOLineItem()" class="text-xs font-semibold text-terra hover:text-terra-h flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Line Item
+            </button>
+          </div>
+          <div id="so-items-container" class="space-y-2.5"></div>
+        </div>
+        <div class="p-3.5 bg-sand border border-bdr rounded-xl flex justify-between items-center text-sm font-semibold">
+          <span class="text-brown">Total Order Amount:</span>
+          <span id="so-total-display" class="font-mono text-terra text-base font-bold">$0.00</span>
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr shrink-0">
+          <button type="button" onclick="closeModal('modal-create-so')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Create Sales Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 8. PO Details Modal -->
+  <div id="modal-po-details" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 id="po-details-title" class="text-base font-bold text-espresso">Purchase Order Details</h3>
+        <button onclick="closeModal('modal-po-details')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="po-details-content"></div>
+      <div class="flex justify-end pt-3 border-t border-bdr">
+        <button type="button" onclick="closeModal('modal-po-details')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. SO Details Modal -->
+  <div id="modal-so-details" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 id="so-details-title" class="text-base font-bold text-espresso">Sales Order Details</h3>
+        <button onclick="closeModal('modal-so-details')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="so-details-content"></div>
+      <div class="flex justify-end pt-3 border-t border-bdr">
+        <button type="button" onclick="closeModal('modal-so-details')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Warehouse Stock Detail Modal -->
+  <div id="modal-warehouse-stock" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr shrink-0">
+        <h3 id="warehouse-stock-title" class="text-base font-bold text-espresso">Warehouse Stock Breakdown</h3>
+        <button onclick="closeModal('modal-warehouse-stock')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="warehouse-stock-list" class="flex-1 overflow-y-auto pr-1"></div>
+      <div class="flex justify-end pt-3 border-t border-bdr shrink-0">
+        <button type="button" onclick="closeModal('modal-warehouse-stock')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Supplier Products Modal -->
+  <div id="modal-supplier-products" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr shrink-0">
+        <h3 id="supplier-products-title" class="text-base font-bold text-espresso">Supplied Product Lines</h3>
+        <button onclick="closeModal('modal-supplier-products')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="supplier-products-list" class="flex-1 overflow-y-auto pr-1"></div>
+      <div class="flex justify-end pt-3 border-t border-bdr shrink-0">
+        <button type="button" onclick="closeModal('modal-supplier-products')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Ship Modal -->
+  <div id="modal-ship" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="bg-taupe border border-bdr rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-bdr">
+        <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+          <i data-lucide="send" class="w-5 h-5 text-terra"></i> Dispatch Shipment
+        </h3>
+        <button onclick="closeModal('modal-ship')" class="text-muted hover:text-espresso p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="window.handleShipSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="ship-id">
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Shipping Carrier</label>
+          <input type="text" id="ship-carrier" required placeholder="e.g. FedEx, DHL, Blue Dart" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-brown mb-1.5">Tracking Number</label>
+          <input type="text" id="ship-tracking" required placeholder="e.g. TRK-84920491" class="w-full bg-sand border border-bdr text-espresso text-sm rounded-xl px-3.5 py-2 font-mono">
+        </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-bdr">
+          <button type="button" onclick="closeModal('modal-ship')" class="px-4 py-2 bg-taupe2 hover:bg-taupe3 text-brown text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-terra hover:bg-terra-h text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-terra/20">Confirm Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Script (ES6 Module) -->
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

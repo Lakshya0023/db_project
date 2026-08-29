@@ -1,0 +1,185 @@
+/* Custom CSS for Warehouse Management System — Warm Earthy Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #F7F4EF;
+  --surface: #EAE0D5;
+  --surface-2: #D8CABF;
+  --surface-3: #C8B8A8;
+  --accent: #C86D51;
+  --accent-hover: #B35D42;
+  --accent-light: rgba(200, 109, 81, 0.12);
+  --text: #2C221E;
+  --text-secondary: #5C4A42;
+  --text-muted: #8B7B74;
+  --border: #C8B8A8;
+  --border-light: #DDD0C5;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A89080;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-success {
+  background-color: rgba(74, 142, 95, 0.12);
+  color: #2E7D4F;
+  border: 1px solid rgba(74, 142, 95, 0.30);
+}
+
+.badge-warning {
+  background-color: rgba(186, 130, 50, 0.12);
+  color: #9A6C20;
+  border: 1px solid rgba(186, 130, 50, 0.30);
+}
+
+.badge-danger {
+  background-color: rgba(180, 60, 50, 0.12);
+  color: #A83428;
+  border: 1px solid rgba(180, 60, 50, 0.30);
+}
+
+.badge-info {
+  background-color: rgba(200, 109, 81, 0.12);
+  color: #C86D51;
+  border: 1px solid rgba(200, 109, 81, 0.30);
+}
+
+.badge-purple {
+  background-color: rgba(130, 80, 150, 0.12);
+  color: #7B4F8A;
+  border: 1px solid rgba(130, 80, 150, 0.30);
+}
+
+.badge-gray {
+  background-color: rgba(92, 74, 66, 0.10);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+/* Animation utilities */
+.fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast container animations */
+.toast {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-hiding {
+  animation: slideOutRight 0.25s forwards;
+}
+
+@keyframes slideOutRight {
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background: rgba(44, 34, 30, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+/* Card Hover Glow Effect */
+.card-glow {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.card-glow:hover {
+  border-color: rgba(200, 109, 81, 0.45);
+  box-shadow: 0 4px 20px -4px rgba(200, 109, 81, 0.18);
+}
+
+.code-font {
+  font-family: var(--font-mono);
+}
+
+/* Sidebar nav active link */
+.nav-link.active, .nav-link-active {
+  background-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* Table row hover */
+tr:hover td {
+  background-color: rgba(200, 109, 81, 0.04);
+}
+
+/* Input focus ring */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(200, 109, 81, 0.15);
+}
+
+/* Capacity bar track */
+.cap-bar-track {
+  background: var(--surface-2);
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 8px;
+}
+.cap-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
