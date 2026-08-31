@@ -2,16 +2,65 @@ import os
 import sqlite3
 import re
 import datetime
+import shutil
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Determine DB backend mode
 DB_TYPE = os.getenv("DB_TYPE", "auto")  # 'postgres', 'sqlite', or 'auto'
-SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "warehouse.db")
 
 # Cache whether PostgreSQL is available
 _USE_POSTGRES = None
+
+
+def get_sqlite_db_path():
+    """
+    Returns a writable SQLite database path.
+    In serverless environments like Vercel / AWS Lambda where /var/task is read-only,
+    this automatically copies/creates the database in /tmp/warehouse.db.
+    """
+    bundle_db = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "warehouse.db")
+    
+    is_serverless = bool(
+        os.getenv("VERCEL") or 
+        os.getenv("AWS_LAMBDA_FUNCTION_NAME") or 
+        os.getenv("LAMBDA_TASK_ROOT") or
+        os.getenv("NOW_REGION")
+    )
+    
+    # Check if project directory is read-only
+    db_dir = os.path.dirname(bundle_db)
+    is_readonly = not os.access(db_dir, os.W_OK) if os.path.exists(db_dir) else True
+
+    if is_serverless or is_readonly:
+        tmp_db = "/tmp/warehouse.db"
+        if not os.path.exists(tmp_db):
+            if os.path.exists(bundle_db):
+                try:
+                    shutil.copyfile(bundle_db, tmp_db)
+                except Exception as e:
+                    print(f"Notice: Could not copy bundle DB to /tmp: {e}")
+        return tmp_db
+
+    return bundle_db
+
+
+def get_postgres_dsn():
+    """Returns PostgreSQL connection string or None if not configured."""
+    for key in ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING"):
+        val = os.getenv(key)
+        if val:
+            if val.startswith("postgres://"):
+                val = val.replace("postgres://", "postgresql://", 1)
+            return val
+    
+    # Check if explicit host is provided
+    host = os.getenv("DB_HOST")
+    if host and host != "localhost":
+        return None  # Will use individual host params
+    if host == "localhost":
+        return "localhost"
+    return None
 
 
 def is_postgres_available():
@@ -23,61 +72,183 @@ def is_postgres_available():
         _USE_POSTGRES = False
         return False
 
+    dsn = get_postgres_dsn()
     try:
         import psycopg2
         import psycopg2.extras
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=os.getenv("DB_PORT", "5432"),
-            dbname=os.getenv("DB_NAME", "warehouse_db"),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD", ""),
-            connect_timeout=2
-        )
+        if dsn and dsn != "localhost":
+            conn = psycopg2.connect(dsn, connect_timeout=3)
+        else:
+            conn = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                port=os.getenv("DB_PORT", "5432"),
+                dbname=os.getenv("DB_NAME", "warehouse_db"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", ""),
+                connect_timeout=2
+            )
         conn.close()
         _USE_POSTGRES = True
+        init_postgres_db()
         return True
-    except Exception:
+    except Exception as e:
         if DB_TYPE == "postgres":
             raise
         _USE_POSTGRES = False
         return False
 
 
+def init_postgres_db():
+    """Ensure tables exist in PostgreSQL if connected to a fresh cloud DB."""
+    try:
+        import psycopg2
+        dsn = get_postgres_dsn()
+        if dsn and dsn != "localhost":
+            conn = psycopg2.connect(dsn)
+        else:
+            conn = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                port=os.getenv("DB_PORT", "5432"),
+                dbname=os.getenv("DB_NAME", "warehouse_db"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", "")
+            )
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM information_schema.tables WHERE table_name = 'products'")
+        if cur.fetchone() is None:
+            schema_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema.sql")
+            if os.path.exists(schema_file):
+                with open(schema_file, "r") as f:
+                    cur.execute(f.read())
+                conn.commit()
+                print("✅ PostgreSQL schema initialized from schema.sql")
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Notice: PostgreSQL schema check: {e}")
+
+
 class SQLiteCursorWrapper:
-    def __init__(self, raw_cursor):
+    def __init__(self, raw_cursor, raw_conn=None):
         self._cur = raw_cursor
+        self._conn = raw_conn
+        self._emulated_row = None
+        self._emulated_rows = None
 
     def execute(self, query, params=None):
+        self._emulated_row = None
+        self._emulated_rows = None
+
         # 1. Strip 'FOR UPDATE' for SQLite compatibility
-        clean_query = re.sub(r'\s+FOR\s+UPDATE\b', '', query, flags=re.IGNORECASE)
+        clean_query = re.sub(r'\s+FOR\s+UPDATE\b', '', query, flags=re.IGNORECASE).strip()
         
         # 2. Replace %s with ? for SQLite parameters
         clean_query = clean_query.replace('%s', '?')
 
+        param_tuple = tuple(params) if params is not None else ()
+
+        # Try native execution first (works if SQLite version >= 3.35 supports RETURNING)
         try:
-            if params is not None:
-                # Convert params tuple/list for SQLite
-                return self._cur.execute(clean_query, tuple(params))
-            else:
-                return self._cur.execute(clean_query)
+            res = self._cur.execute(clean_query, param_tuple) if params is not None else self._cur.execute(clean_query)
+            return res
         except sqlite3.IntegrityError as e:
-            # Map SQLite integrity errors to psycopg2-like behavior if needed
+            self._handle_integrity_error(e)
+        except sqlite3.OperationalError as e:
+            err_text = str(e).lower()
+            # If SQLite fails because of RETURNING syntax error in older SQLite versions:
+            if "returning" in err_text or "syntax error" in err_text:
+                return self._emulate_returning(clean_query, param_tuple)
+            raise
+
+    def _handle_integrity_error(self, e):
+        err_msg = str(e).lower()
+        try:
             import psycopg2.errors
-            err_msg = str(e).lower()
             if "unique" in err_msg:
                 raise psycopg2.errors.UniqueViolation(str(e))
             elif "foreign key" in err_msg:
                 raise psycopg2.errors.ForeignKeyViolation(str(e))
-            raise
+        except ImportError:
+            pass
+        raise e
+
+    def _emulate_returning(self, query, params):
+        """Fallback for older SQLite runtimes that do not support RETURNING syntax."""
+        # Detect statement type
+        upper_q = query.upper()
+        returning_match = re.search(r'\s+RETURNING\s+(.+)$', query, flags=re.IGNORECASE)
+        if not returning_match:
+            # Not a RETURNING issue, re-raise
+            return self._cur.execute(query, params)
+
+        query_without_returning = query[:returning_match.start()].strip()
+
+        # Handle INSERT ... RETURNING
+        if upper_q.startswith("INSERT INTO"):
+            table_match = re.search(r'INSERT\s+INTO\s+([a-zA-Z0-9_]+)', query, flags=re.IGNORECASE)
+            table_name = table_match.group(1) if table_match else None
+
+            self._cur.execute(query_without_returning, params)
+            last_id = self._cur.lastrowid
+            if table_name and last_id:
+                temp_cur = self._conn.cursor() if self._conn else self._cur
+                temp_cur.execute(f"SELECT * FROM {table_name} WHERE rowid = ?", (last_id,))
+                row = temp_cur.fetchone()
+                self._emulated_row = dict(row) if row else None
+            return self._cur
+
+        # Handle UPDATE ... WHERE ... RETURNING
+        elif upper_q.startswith("UPDATE"):
+            table_match = re.search(r'UPDATE\s+([a-zA-Z0-9_]+)', query, flags=re.IGNORECASE)
+            table_name = table_match.group(1) if table_match else None
+            where_match = re.search(r'WHERE\s+(.+)$', query_without_returning, flags=re.IGNORECASE)
+
+            # We can execute update and then select
+            self._cur.execute(query_without_returning, params)
+            if table_name and where_match:
+                # Find matching row from WHERE parameters (usually the last param is the ID)
+                temp_cur = self._conn.cursor() if self._conn else self._cur
+                where_clause = where_match.group(1)
+                num_params_in_where = where_clause.count('?')
+                where_params = params[-num_params_in_where:] if num_params_in_where > 0 else ()
+                temp_cur.execute(f"SELECT * FROM {table_name} WHERE {where_clause}", where_params)
+                row = temp_cur.fetchone()
+                self._emulated_row = dict(row) if row else None
+            return self._cur
+
+        # Handle DELETE ... WHERE ... RETURNING
+        elif upper_q.startswith("DELETE FROM"):
+            table_match = re.search(r'DELETE\s+FROM\s+([a-zA-Z0-9_]+)', query, flags=re.IGNORECASE)
+            table_name = table_match.group(1) if table_match else None
+            where_match = re.search(r'WHERE\s+(.+)$', query_without_returning, flags=re.IGNORECASE)
+
+            if table_name and where_match:
+                temp_cur = self._conn.cursor() if self._conn else self._cur
+                where_clause = where_match.group(1)
+                temp_cur.execute(f"SELECT * FROM {table_name} WHERE {where_clause}", params)
+                row = temp_cur.fetchone()
+                self._emulated_row = dict(row) if row else None
+
+            self._cur.execute(query_without_returning, params)
+            return self._cur
+
+        return self._cur.execute(query_without_returning, params)
 
     def fetchone(self):
+        if self._emulated_row is not None:
+            r = self._emulated_row
+            self._emulated_row = None
+            return r
         row = self._cur.fetchone()
         if row is None:
             return None
         return dict(row)
 
     def fetchall(self):
+        if self._emulated_rows is not None:
+            r = self._emulated_rows
+            self._emulated_rows = None
+            return r
         rows = self._cur.fetchall()
         return [dict(r) for r in rows]
 
@@ -94,7 +265,7 @@ class SQLiteConnectionWrapper:
         self._conn = raw_conn
 
     def cursor(self):
-        return SQLiteCursorWrapper(self._conn.cursor())
+        return SQLiteCursorWrapper(self._conn.cursor(), self._conn)
 
     def commit(self):
         self._conn.commit()
@@ -113,16 +284,16 @@ def dict_factory(cursor, row):
     return d
 
 
-def init_sqlite_db():
+def init_sqlite_db(db_path):
     """Initializes SQLite tables and sample data if not already present."""
-    conn = sqlite3.connect(SQLITE_DB_PATH)
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON;")
     cur = conn.cursor()
 
-    # Check if products table exists
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
     if cur.fetchone() is None:
-        # Schema definition compatible with SQLite
         schema_script = """
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,7 +382,7 @@ def init_sqlite_db():
             delivered_date TEXT
         );
 
-        -- Sample Data
+        -- Sample Seed Data
         INSERT INTO warehouses (name, location, capacity) VALUES
         ('Central Warehouse', 'Chennai, TN', 10000),
         ('North Depot', 'Delhi, DL', 5000);
@@ -247,22 +418,29 @@ def get_connection():
     if is_postgres_available():
         import psycopg2
         import psycopg2.extras
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=os.getenv("DB_PORT", "5432"),
-            dbname=os.getenv("DB_NAME", "warehouse_db"),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD", ""),
-            cursor_factory=psycopg2.extras.RealDictCursor,
-        )
+        dsn = get_postgres_dsn()
+        if dsn and dsn != "localhost":
+            conn = psycopg2.connect(
+                dsn,
+                cursor_factory=psycopg2.extras.RealDictCursor,
+            )
+        else:
+            conn = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                port=os.getenv("DB_PORT", "5432"),
+                dbname=os.getenv("DB_NAME", "warehouse_db"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", ""),
+                cursor_factory=psycopg2.extras.RealDictCursor,
+            )
         return conn
     else:
-        # SQLite mode
-        init_sqlite_db()
-        conn = sqlite3.connect(SQLITE_DB_PATH)
+        # SQLite mode (with serverless /tmp auto-redirection)
+        db_path = get_sqlite_db_path()
+        init_sqlite_db(db_path)
+        conn = sqlite3.connect(db_path)
         conn.row_factory = dict_factory
         conn.execute("PRAGMA foreign_keys = ON;")
-        # Register custom SQL function NOW()
         conn.create_function("NOW", 0, lambda: datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         return SQLiteConnectionWrapper(conn)
 
@@ -276,7 +454,7 @@ def test_connection():
         result = cur.fetchone()
         cur.close()
         conn.close()
-        engine = "PostgreSQL" if is_postgres_available() else f"Embedded SQLite ({SQLITE_DB_PATH})"
+        engine = "PostgreSQL" if is_postgres_available() else f"Embedded SQLite ({get_sqlite_db_path()})"
         print(f"✅ Database connected via {engine} at {result['now']}")
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
