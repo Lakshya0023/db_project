@@ -1,75 +1,112 @@
-# Warehouse & Supply Chain Management System (Flask + Modern Web UI)
+# 📦 Warehouse & Supply Chain Management System
 
-A full-stack, enterprise-grade Supply Chain & Warehouse Management System with a PostgreSQL database, Flask REST API backend, and modern single-page dashboard frontend.
+A full-stack Warehouse & Supply Chain Management System built as a database coursework project. It combines a **Flask REST API**, a **relational database**, and a **modern single-page dashboard UI** to manage products, suppliers, warehouses, inventory, purchase orders, sales orders, and shipments.
 
-## 1. Install PostgreSQL and create the database
+🔗 **Live Demo:** [dbproject-ten.vercel.app](https://dbproject-ten.vercel.app)
+
+---
+
+## ✨ Features
+
+- **Real-time dashboard** with KPIs, low-stock alerts, and warehouse stock distribution
+- **Multi-warehouse inventory** tracking with safe, transaction-locked stock adjustments
+- **Purchase order workflow** – create POs and receive stock with one click
+- **Sales order workflow** – create orders and fulfill them with automatic stock verification
+- **Shipment tracking** – `Preparing → Shipped → Delivered` with carrier and tracking numbers
+- **Data integrity** – row-level locking (`SELECT ... FOR UPDATE`), atomic transactions, and `CHECK` constraints
+- **RESTful API** with a modular controller/route architecture
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer      | Technology                         |
+|------------|------------------------------------|
+| Backend    | Python, Flask (Blueprints)         |
+| Database   | PostgreSQL (`psycopg2`)            |
+| Frontend   | HTML, CSS, JavaScript (SPA dashboard) |
+| Deployment | Vercel                             |
+
+---
+
+## 🖥️ Web UI Modules
+
+| Module | Description |
+|--------|-------------|
+| 📊 **Dashboard** | Real-time KPI summary, critical low-stock alert banner, warehouse stock distribution chart, and quick shortcuts |
+| 📦 **Inventory Matrix** | Live multi-warehouse stock matrix, status indicators, and a 1-click **Quick Stock Adjust** modal (transaction-locked increments/decrements) |
+| 🏷️ **Products Catalog** | SKU registry, unit pricing, reorder thresholds, supplier tags, and create/edit/delete modals |
+| 🏢 **Warehouses** | Capacity utilization, locations, and an itemized warehouse stock inspector |
+| 🚚 **Suppliers** | Vendor directory, contact details, and vendor catalog inspector |
+| 📥 **Purchase Orders** | Inbound orders, line-item calculations, and 1-click **Receive Stock** (auto-increments inventory) |
+| 📤 **Sales Orders** | Customer orders, line-item calculations, and 1-click **Fulfill Order** (verifies availability, decrements inventory, creates shipment) |
+| 🚢 **Shipments** | Logistics pipeline (Preparing → Shipped → Delivered) with carrier assignment and tracking numbers |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.8+
+- PostgreSQL
+- `pip`
+
+### 1. Install PostgreSQL and create the database
+
 ```bash
 createdb warehouse_db
 ```
 
-## 2. Load the schema + sample data
+### 2. Load the schema + sample data
+
 ```bash
 psql -d warehouse_db -f schema.sql
 ```
 
-## 3. Create a virtual environment and install dependencies
+### 3. Create a virtual environment and install dependencies
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 4. Configure environment variables
+### 4. Configure environment variables
+
 ```bash
 cp .env.example .env
 # then edit .env with your real DB_USER / DB_PASSWORD
 ```
 
-## 5. Run the Server (Backend + Frontend together)
+### 5. Run the server (backend + frontend together)
+
 ```bash
 python app.py
 ```
-- **Web UI Dashboard**: Open [http://localhost:5000](http://localhost:5000) in any web browser.
-- **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+- **Web UI Dashboard:** <http://localhost:5000>
+- **API Health Check:** <http://localhost:5000/api/health>
 
 ---
 
-## 6. Web UI Dashboard Modules
-1. **📊 Dashboard**: Real-time KPI summary, critical low-stock alert banner, warehouse stock distribution chart, and quick shortcuts.
-2. **📦 Inventory Matrix**: Live multi-warehouse stock level matrix, status indicators, and 1-click **Quick Stock Adjust** modal (safe transaction-locked increments/decrements).
-3. **🏷️ Products Catalog**: Product SKU registry, unit pricing, reorder thresholds, supplier tags, and create/edit/delete modals.
-4. **🏢 Warehouses**: Storage facility capacity utilization, location maps, and itemized warehouse stock inspector.
-5. **🚚 Suppliers**: Vendor directory, contact details, and vendor catalog inspector.
-6. **📥 Purchase Orders**: Inbound stock orders, line item calculations, and 1-click **Receive Stock** action (auto-increments warehouse inventory).
-7. **📤 Sales Orders**: Customer sales orders, line item calculations, and 1-click **Fulfill Order** action (verifies availability, decrements inventory, generates shipment).
-8. **🚢 Shipments**: Logistics pipeline (Preparing -> Shipped -> Delivered) with carrier assignment and live tracking numbers.
+## 📚 REST API Reference
 
----
-
-## 7. REST API Reference
-
+> Replace `<id>` with the numeric ID of the record.
 
 ### Products
-| Method | Endpoint                          | Description                    |
-|--------|------------------------------------|---------------------------------|
-| GET    | /api/products                      | List all products               |
-| GET    | /api/products/<id>                 | Get one product                 |
-| POST   | /api/products                      | Create a product                |
-| PUT    | /api/products/<id>                 | Update a product                |
-| DELETE | /api/products/<id>                 | Delete a product                |
-| GET    | /api/products/reports/low-stock    | Products at/below reorder level |
 
-### Suppliers
-| Method | Endpoint                        | Description                        |
-|--------|-----------------------------------|-------------------------------------|
-| GET    | /api/suppliers                    | List all suppliers                  |
-| GET    | /api/suppliers/<id>                | Get one supplier                    |
-| GET    | /api/suppliers/<id>/products       | Products supplied by this supplier  |
-| POST   | /api/suppliers                    | Create a supplier                   |
-| PUT    | /api/suppliers/<id>                | Update a supplier                   |
-| DELETE | /api/suppliers/<id>                | Delete a supplier                   |
+| Method | Endpoint                          | Description                     |
+|--------|-----------------------------------|---------------------------------|
+| GET    | `/api/products`                   | List all products               |
+| GET    | `/api/products/<id>`              | Get one product                 |
+| POST   | `/api/products`                   | Create a product                |
+| PUT    | `/api/products/<id>`              | Update a product                |
+| DELETE | `/api/products/<id>`              | Delete a product               |
+| GET    | `/api/products/reports/low-stock` | Products at/below reorder level |
 
-Example create product request body:
+Example create request:
+
 ```json
 {
   "sku": "SKU-1004",
@@ -81,26 +118,40 @@ Example create product request body:
 }
 ```
 
+### Suppliers
+
+| Method | Endpoint                         | Description                        |
+|--------|----------------------------------|------------------------------------|
+| GET    | `/api/suppliers`                 | List all suppliers                 |
+| GET    | `/api/suppliers/<id>`            | Get one supplier                   |
+| GET    | `/api/suppliers/<id>/products`   | Products supplied by this supplier |
+| POST   | `/api/suppliers`                 | Create a supplier                  |
+| PUT    | `/api/suppliers/<id>`            | Update a supplier                  |
+| DELETE | `/api/suppliers/<id>`            | Delete a supplier                  |
+
 ### Warehouses
-| Method | Endpoint                        | Description                        |
-|--------|-------------------------------------|---------------------------------|
-| GET    | /api/warehouses                    | List all warehouses                |
-| GET    | /api/warehouses/<id>                | Get one warehouse                  |
-| GET    | /api/warehouses/<id>/stock          | All inventory held at this warehouse |
-| POST   | /api/warehouses                    | Create a warehouse                 |
-| PUT    | /api/warehouses/<id>                | Update a warehouse                 |
-| DELETE | /api/warehouses/<id>                | Delete a warehouse                 |
+
+| Method | Endpoint                       | Description                          |
+|--------|--------------------------------|--------------------------------------|
+| GET    | `/api/warehouses`              | List all warehouses                  |
+| GET    | `/api/warehouses/<id>`         | Get one warehouse                    |
+| GET    | `/api/warehouses/<id>/stock`   | All inventory held at this warehouse |
+| POST   | `/api/warehouses`              | Create a warehouse                   |
+| PUT    | `/api/warehouses/<id>`         | Update a warehouse                   |
+| DELETE | `/api/warehouses/<id>`         | Delete a warehouse                   |
 
 ### Inventory
-| Method | Endpoint              | Description                                              |
-|--------|-------------------------|------------------------------------------------------------|
-| GET    | /api/inventory          | List all inventory records (joined with product + warehouse) |
-| GET    | /api/inventory/<id>      | Get one inventory record                                   |
-| POST   | /api/inventory           | Create a new (product, warehouse) stock record              |
-| DELETE | /api/inventory/<id>      | Delete an inventory record                                  |
-| PATCH  | /api/inventory/adjust    | Safely increment/decrement stock (transaction-locked)       |
 
-Example adjust request body (stock out, e.g. fulfilling a sale):
+| Method | Endpoint                 | Description                                                  |
+|--------|--------------------------|--------------------------------------------------------------|
+| GET    | `/api/inventory`         | List all inventory records (joined with product + warehouse) |
+| GET    | `/api/inventory/<id>`    | Get one inventory record                                     |
+| POST   | `/api/inventory`         | Create a new (product, warehouse) stock record               |
+| DELETE | `/api/inventory/<id>`    | Delete an inventory record                                   |
+| PATCH  | `/api/inventory/adjust`  | Safely increment/decrement stock (transaction-locked)        |
+
+Example adjust request (stock out, e.g. fulfilling a sale):
+
 ```json
 {
   "product_id": 3,
@@ -108,7 +159,9 @@ Example adjust request body (stock out, e.g. fulfilling a sale):
   "change": -2
 }
 ```
-Example adjust request body (stock in, e.g. receiving from a supplier):
+
+Example adjust request (stock in, e.g. receiving from a supplier):
+
 ```json
 {
   "product_id": 3,
@@ -116,22 +169,22 @@ Example adjust request body (stock in, e.g. receiving from a supplier):
   "change": 50
 }
 ```
-`adjust_stock` uses `SELECT ... FOR UPDATE` to lock the row during the
-transaction, so two simultaneous requests can't both read the same starting
-quantity and cause a lost update — and it rejects any change that would push
-quantity below zero.
+
+> `adjust_stock` uses `SELECT ... FOR UPDATE` to lock the row during the transaction, so two simultaneous requests can't read the same starting quantity and cause a lost update. It also rejects any change that would push quantity below zero.
 
 ### Purchase Orders
-| Method | Endpoint                          | Description                                             |
-|--------|--------------------------------------|-----------------------------------------------------------|
-| GET    | /api/purchase-orders                | List all purchase orders                                   |
-| GET    | /api/purchase-orders/<id>            | Get one PO with its line items                              |
-| POST   | /api/purchase-orders                | Create a PO with line items (header + items in one transaction) |
-| PUT    | /api/purchase-orders/<id>            | Update status to 'pending' or 'cancelled'                   |
-| DELETE | /api/purchase-orders/<id>            | Delete a purchase order                                     |
-| POST   | /api/purchase-orders/<id>/receive    | Mark received + add stock into inventory (transactional)    |
 
-Example create request body:
+| Method | Endpoint                               | Description                                                     |
+|--------|----------------------------------------|-----------------------------------------------------------------|
+| GET    | `/api/purchase-orders`                 | List all purchase orders                                        |
+| GET    | `/api/purchase-orders/<id>`            | Get one PO with its line items                                  |
+| POST   | `/api/purchase-orders`                 | Create a PO with line items (header + items in one transaction) |
+| PUT    | `/api/purchase-orders/<id>`            | Update status to `pending` or `cancelled`                       |
+| DELETE | `/api/purchase-orders/<id>`            | Delete a purchase order                                         |
+| POST   | `/api/purchase-orders/<id>/receive`    | Mark received + add stock into inventory (transactional)        |
+
+Example create request:
+
 ```json
 {
   "supplier_id": 1,
@@ -142,26 +195,22 @@ Example create request body:
   ]
 }
 ```
-`POST /api/purchase-orders/<id>/receive` takes no body. It locks the PO and
-every affected inventory row with `SELECT ... FOR UPDATE`, adds each line
-item's quantity into inventory (creating the inventory row if the product
-has never been stocked at that warehouse before), flips the PO's status to
-`received`, and commits everything together. If the PO isn't `pending`
-(already received or cancelled), it's rejected with a 400 and nothing is
-changed — this prevents double-crediting stock if the endpoint is called
-twice by accident.
+
+> `POST /api/purchase-orders/<id>/receive` takes no body. It locks the PO and every affected inventory row with `SELECT ... FOR UPDATE`, adds each line item's quantity into inventory (creating the inventory row if the product has never been stocked at that warehouse), flips the PO status to `received`, and commits everything together. If the PO isn't `pending` (already received or cancelled), it is rejected with a `400` and nothing changes — preventing double-crediting of stock.
 
 ### Sales Orders
-| Method | Endpoint                        | Description                                                |
-|--------|-------------------------------------|--------------------------------------------------------------|
-| GET    | /api/sales-orders                  | List all sales orders                                        |
-| GET    | /api/sales-orders/<id>              | Get one order with its items and shipment (if any)            |
-| POST   | /api/sales-orders                  | Create an order with line items (does not touch stock yet)    |
-| DELETE | /api/sales-orders/<id>              | Delete a sales order                                          |
-| POST   | /api/sales-orders/<id>/cancel       | Cancel a pending order                                        |
-| POST   | /api/sales-orders/<id>/fulfill      | Check stock, decrement inventory, create shipment (transactional) |
 
-Example create request body:
+| Method | Endpoint                             | Description                                                       |
+|--------|--------------------------------------|-------------------------------------------------------------------|
+| GET    | `/api/sales-orders`                  | List all sales orders                                             |
+| GET    | `/api/sales-orders/<id>`             | Get one order with its items and shipment (if any)                |
+| POST   | `/api/sales-orders`                  | Create an order with line items (does not touch stock yet)        |
+| DELETE | `/api/sales-orders/<id>`             | Delete a sales order                                              |
+| POST   | `/api/sales-orders/<id>/cancel`      | Cancel a pending order                                            |
+| POST   | `/api/sales-orders/<id>/fulfill`     | Check stock, decrement inventory, create shipment (transactional) |
+
+Example create request:
+
 ```json
 {
   "customer_name": "Jane Doe",
@@ -173,33 +222,28 @@ Example create request body:
 }
 ```
 
-`POST /api/sales-orders/<id>/fulfill` is the most important endpoint in the
-whole system to understand for your demo/report. In one transaction it:
+**How `POST /api/sales-orders/<id>/fulfill` works** (the core transactional workflow):
+
 1. Locks the order row; rejects if the order isn't `pending`.
 2. Locks every affected inventory row with `SELECT ... FOR UPDATE`.
-3. **Checks stock for every line item first**, before changing anything. If
-   even one item is short, the entire transaction rolls back and a `409`
-   is returned listing exactly which items were short and by how much —
-   this avoids partially fulfilling an order (e.g. shipping 2 of 3 items
-   and leaving the third backordered with no record of it).
-4. Only if everything is available does it decrement inventory for every item.
+3. **Checks stock for every line item first**, before changing anything. If even one item is short, the entire transaction rolls back and a `409` is returned listing exactly which items are short and by how much — avoiding partial fulfillment.
+4. Only if everything is available, decrements inventory for every item.
 5. Creates a `shipments` row with status `preparing`.
 6. Marks the order `fulfilled`.
 
 ### Shipments
-| Method | Endpoint                        | Description                                  |
-|--------|-------------------------------------|-------------------------------------------------|
-| GET    | /api/shipments                     | List all shipments                               |
-| GET    | /api/shipments/<id>                 | Get one shipment                                 |
-| POST   | /api/shipments/<id>/ship            | Mark shipment 'shipped' (optionally set carrier/tracking) |
-| POST   | /api/shipments/<id>/deliver         | Mark shipment 'delivered'                        |
 
-Shipments follow a strict status progression: `preparing` → `shipped` →
-`delivered`. Each transition is only allowed from the correct prior state
-(e.g. you can't mark something `delivered` before it's been `shipped`),
-which is enforced in the controller, not just the DB `CHECK` constraint.
+| Method | Endpoint                          | Description                                               |
+|--------|-----------------------------------|-----------------------------------------------------------|
+| GET    | `/api/shipments`                  | List all shipments                                        |
+| GET    | `/api/shipments/<id>`             | Get one shipment                                          |
+| POST   | `/api/shipments/<id>/ship`        | Mark shipment `shipped` (optionally set carrier/tracking) |
+| POST   | `/api/shipments/<id>/deliver`     | Mark shipment `delivered`                                 |
 
-Example ship request body (optional fields):
+Shipments follow a strict status progression: `preparing` → `shipped` → `delivered`. Each transition is only allowed from the correct prior state (e.g. a shipment can't be marked `delivered` before it's `shipped`), enforced in the controller as well as by the database `CHECK` constraint.
+
+Example ship request (optional fields):
+
 ```json
 {
   "carrier": "BlueDart",
@@ -207,42 +251,70 @@ Example ship request body (optional fields):
 }
 ```
 
-## 7. Project structure
+---
+
+## 📁 Project Structure
+
 ```
-warehouse-backend-flask/
-├── app.py                          # entry point, registers blueprints
+db_project/
+├── app.py                              # Entry point, registers blueprints
 ├── db/
-│   └── db.py                       # psycopg2 connection helper
+│   └── db.py                           # Database connection helper
 ├── controllers/
-│   ├── products_controller.py      # DB logic for products
-│   ├── suppliers_controller.py     # DB logic for suppliers
-│   ├── warehouses_controller.py    # DB logic for warehouses
-│   ├── inventory_controller.py     # DB logic for inventory (incl. adjust_stock)
-│   ├── purchase_orders_controller.py  # DB logic for POs (incl. receive_purchase_order)
-│   ├── sales_orders_controller.py     # DB logic for sales orders (incl. fulfill_sales_order)
-│   └── shipments_controller.py        # DB logic for shipments (ship/deliver transitions)
+│   ├── products_controller.py          # DB logic for products
+│   ├── suppliers_controller.py         # DB logic for suppliers
+│   ├── warehouses_controller.py        # DB logic for warehouses
+│   ├── inventory_controller.py         # DB logic for inventory (incl. adjust_stock)
+│   ├── purchase_orders_controller.py   # DB logic for POs (incl. receive_purchase_order)
+│   ├── sales_orders_controller.py      # DB logic for sales orders (incl. fulfill_sales_order)
+│   └── shipments_controller.py         # DB logic for shipments (ship/deliver transitions)
 ├── routes/
-│   ├── products.py                 # Flask blueprint for /api/products
-│   ├── suppliers.py                # Flask blueprint for /api/suppliers
-│   ├── warehouses.py               # Flask blueprint for /api/warehouses
-│   ├── inventory.py                # Flask blueprint for /api/inventory
-│   ├── purchase_orders.py          # Flask blueprint for /api/purchase-orders
-│   ├── sales_orders.py             # Flask blueprint for /api/sales-orders
-│   └── shipments.py                # Flask blueprint for /api/shipments
-├── schema.sql
-├── requirements.txt
-└── .env.example
+│   ├── products.py                     # Blueprint for /api/products
+│   ├── suppliers.py                    # Blueprint for /api/suppliers
+│   ├── warehouses.py                   # Blueprint for /api/warehouses
+│   ├── inventory.py                    # Blueprint for /api/inventory
+│   ├── purchase_orders.py              # Blueprint for /api/purchase-orders
+│   ├── sales_orders.py                 # Blueprint for /api/sales-orders
+│   └── shipments.py                    # Blueprint for /api/shipments
+├── templates/                          # HTML templates (dashboard UI)
+├── static/                             # CSS, JavaScript, and assets
+├── schema.sql                          # Database schema + sample data
+├── requirements.txt                    # Python dependencies
+├── vercel.json                         # Vercel deployment config
+├── .env.example                        # Sample environment variables
+└── .gitignore
 ```
 
-## 8. Next module to build
-Only `auth` remains — signup/login using `bcrypt` (hash passwords) and
-`PyJWT` (issue a JWT on login, verify it in a decorator for protected routes).
-Follow the same pattern: `controllers/auth_controller.py` + `routes/auth.py`,
-then register it in `app.py`.
+---
 
-## 9. Build order so far
-1. ~~warehouses~~ ✅
-2. ~~inventory~~ ✅
-3. ~~purchase_orders~~ ✅
-4. ~~sales_orders + shipments~~ ✅
-5. auth (last)
+## 🧠 Key Database Concepts Demonstrated
+
+- **Normalized relational schema** with primary/foreign keys and `CHECK` constraints
+- **ACID transactions** across multi-table operations (PO receive, sales fulfill)
+- **Pessimistic row-level locking** (`SELECT ... FOR UPDATE`) to prevent lost updates and race conditions
+- **All-or-nothing validation** – stock is verified for every line item before any change is made
+- **State machines** for order and shipment lifecycles
+- **Joins and aggregates** for dashboard KPIs and reports
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Warehouses
+- [x] Inventory
+- [x] Purchase Orders
+- [x] Sales Orders + Shipments
+- [x] Web UI Dashboard
+- [ ] Authentication – signup/login with `bcrypt` (password hashing) and `PyJWT` (JWT-protected routes)
+
+---
+
+## 👤 Author
+
+**Lakshya** — [@Lakshya0023](https://github.com/Lakshya0023)
+
+---
+
+## 📄 License
+
+This project was created for educational / coursework purposes.
