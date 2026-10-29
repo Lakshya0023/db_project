@@ -253,13 +253,36 @@ Example ship request (optional fields):
 
 ---
 
+## 🧪 Query Lab (SQL showcase)
+
+The **Query Lab** tab (sidebar → *Database → Query Lab*) demonstrates the SQL behind the project:
+
+| Type | Count | Highlights |
+|------|-------|-----------|
+| `SELECT` | **22** | joins up to 4 tables, `GROUP BY` / `HAVING`, scalar / `IN` / `NOT EXISTS` subqueries, derived tables, `UNION ALL`, `CASE`, `LIKE`, `LIMIT` |
+| `INSERT` | **5** | `INSERT … VALUES`, multi-table transactional insert, `INSERT … SELECT` (bulk), `NOT EXISTS` guard |
+| `UPDATE` | **5** | bulk price revision, `UPDATE … WHERE IN (subquery)`, transactional stock transfer, date-based status change |
+
+Each card shows the exact SQL, lets you choose parameters, runs it, and displays the result. INSERT/UPDATE
+operations run in a transaction and roll back on any error. Full SQL listing: **[QUERIES.md](QUERIES.md)**.
+
+```bash
+python seed_demo_data.py        # optional: load demo data (or click "Load demo data" in the UI)
+python test_query_lab.py        # 17 automated checks (SQLite by default)
+```
+
+API: `GET /api/query-lab/catalog` · `GET /api/query-lab/select/<1-22>?param=value` · `POST /api/query-lab/dml/<I1-I5|U1-U5>` · `POST /api/query-lab/seed`
+
+---
+
 ## 📁 Project Structure
 
 ```
 db_project/
 ├── app.py                              # Entry point, registers blueprints
 ├── db/
-│   └── db.py                           # Database connection helper
+│   ├── db.py                           # Database connection helper (PostgreSQL / SQLite)
+│   └── seed.py                         # Idempotent demo-data loader
 ├── controllers/
 │   ├── products_controller.py          # DB logic for products
 │   ├── suppliers_controller.py         # DB logic for suppliers
@@ -267,7 +290,8 @@ db_project/
 │   ├── inventory_controller.py         # DB logic for inventory (incl. adjust_stock)
 │   ├── purchase_orders_controller.py   # DB logic for POs (incl. receive_purchase_order)
 │   ├── sales_orders_controller.py      # DB logic for sales orders (incl. fulfill_sales_order)
-│   └── shipments_controller.py         # DB logic for shipments (ship/deliver transitions)
+│   ├── shipments_controller.py         # DB logic for shipments (ship/deliver transitions)
+│   └── query_lab_controller.py         # 22 SELECT + 5 INSERT + 5 UPDATE showcase queries
 ├── routes/
 │   ├── products.py                     # Blueprint for /api/products
 │   ├── suppliers.py                    # Blueprint for /api/suppliers
@@ -275,10 +299,14 @@ db_project/
 │   ├── inventory.py                    # Blueprint for /api/inventory
 │   ├── purchase_orders.py              # Blueprint for /api/purchase-orders
 │   ├── sales_orders.py                 # Blueprint for /api/sales-orders
-│   └── shipments.py                    # Blueprint for /api/shipments
+│   ├── shipments.py                    # Blueprint for /api/shipments
+│   └── query_lab.py                    # Blueprint for /api/query-lab
 ├── templates/                          # HTML templates (dashboard UI)
 ├── static/                             # CSS, JavaScript, and assets
 ├── schema.sql                          # Database schema + sample data
+├── QUERIES.md                          # Full listing of the Query Lab SQL
+├── seed_demo_data.py                   # CLI: load demo data
+├── test_query_lab.py                   # Automated tests for the Query Lab
 ├── requirements.txt                    # Python dependencies
 ├── vercel.json                         # Vercel deployment config
 ├── .env.example                        # Sample environment variables
@@ -295,6 +323,8 @@ db_project/
 - **All-or-nothing validation** – stock is verified for every line item before any change is made
 - **State machines** for order and shipment lifecycles
 - **Joins and aggregates** for dashboard KPIs and reports
+- **Subqueries, set operations, `INSERT … SELECT`, bulk `UPDATE`** – see the Query Lab above
+- **Parameterised queries** (no SQL injection) and transactional rollback on failure
 
 ---
 

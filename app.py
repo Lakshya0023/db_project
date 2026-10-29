@@ -11,6 +11,7 @@ from routes.inventory import inventory_bp
 from routes.purchase_orders import purchase_orders_bp
 from routes.sales_orders import sales_orders_bp
 from routes.shipments import shipments_bp
+from routes.query_lab import query_lab_bp
 
 load_dotenv()
 
@@ -42,6 +43,7 @@ app.register_blueprint(inventory_bp, url_prefix="/api/inventory")
 app.register_blueprint(purchase_orders_bp, url_prefix="/api/purchase-orders")
 app.register_blueprint(sales_orders_bp, url_prefix="/api/sales-orders")
 app.register_blueprint(shipments_bp, url_prefix="/api/shipments")
+app.register_blueprint(query_lab_bp, url_prefix="/api/query-lab")
 
 
 # 404 handler for API and web

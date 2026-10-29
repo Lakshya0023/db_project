@@ -99,5 +99,11 @@ export const API = {
   getShipments: () => request('/api/shipments'),
   getShipment: (id) => request(`/api/shipments/${id}`),
   markShipped: (id, data) => request(`/api/shipments/${id}/ship`, { method: 'POST', body: JSON.stringify(data) }),
-  markDelivered: (id) => request(`/api/shipments/${id}/deliver`, { method: 'POST' })
+  markDelivered: (id) => request(`/api/shipments/${id}/deliver`, { method: 'POST' }),
+
+  // Query Lab (SELECT / INSERT / UPDATE catalogue)
+  queryLabCatalog: () => request('/api/query-lab/catalog'),
+  runSelectQuery: (id, params = {}) => request(`/api/query-lab/select/${id}?${new URLSearchParams(params)}`),
+  runDmlQuery: (id, data) => request(`/api/query-lab/dml/${id}`, { method: 'POST', body: JSON.stringify(data) }),
+  seedDemoData: () => request('/api/query-lab/seed', { method: 'POST' })
 };

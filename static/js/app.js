@@ -1,4 +1,5 @@
 import { API } from './api.js';
+import { renderQueryLab } from './query_lab.js';
 
 // ── Warm Palette Helpers (replaces dark slate classes) ──────────────────────
 const C = {
@@ -160,6 +161,7 @@ export function switchTab(tabName) {
     'purchase-orders': 'Purchase Orders (Procurement)',
     'sales-orders':  'Sales Orders (Fulfillment)',
     shipments:       'Shipments & Logistics',
+    'query-lab':     'Query Lab (SQL SELECT / INSERT / UPDATE)',
   };
   const el = document.getElementById('current-tab-title');
   if (el) el.textContent = titles[tabName] || 'Dashboard';
@@ -189,6 +191,7 @@ async function loadActiveTabContent() {
       case 'purchase-orders': await renderPurchaseOrders(container); break;
       case 'sales-orders':    await renderSalesOrders(container);    break;
       case 'shipments':       await renderShipments(container);      break;
+      case 'query-lab':       await renderQueryLab(container, { showToast, onDataChanged: refreshBaseLookups }); break;
       default:                await renderDashboard(container);
     }
     lucide.createIcons();
